@@ -1,0 +1,13 @@
+version: "3"
+services:
+  stream9build:
+    volumes:
+      - rpm9stream:/home/centos/rpmbuild/RPMS
+    build:
+      context: .
+      args:
+        os: $OS9
+
+volumes:
+  rpm9stream:
+    name: rpm9stream
