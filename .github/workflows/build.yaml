@@ -1,12 +1,8 @@
 name: RPM build
 on: [push]
 env:
-  ARTIFACTORY_URL: https://rpmb.jfrog.io
-  BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
-  BINTRAY_API_KEY: ${{ secrets.BINTRAY_API_KEY }}
-  DOCKER_USER: ${{ secrets.DOCKER_USER }}
-  DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-  BINTRAY_REPO: custom
+  FTPTRAY_HOST: ${{ secrets.FTPTRAY_HOST }}
+  FTPTRAY_PASSWORD_OS9: ${{ secrets.FTPTRAY_PASSWORD_OS9 }}
   OS7: 7.9.2009
   RL8: 8.7.20221112
   OS9: stream9-20221206.0
@@ -15,22 +11,26 @@ env:
   OS9TAG: stream9-20221206.0
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       matrix:
         include:
           - build: stream9build
-            uploader: stream9bintray
-            repo_path: centos/9-stream
+            uploader: stream9ftptray
+            uploader_user: stream-9
+            uploader_password: $FTPTRAY_PASSWORD_OS9
+            repo: custom
     env:
       BUILD: ${{ matrix.build }}
       UPLOADER: ${{ matrix.uploader }}
-      REPO_PATH: ${{ matrix.repo_path }}
+      FTPTRAY_USER: ${{ matrix.uploader_user }}
+      FTPTRAY_PASSWORD: ${{ matrix.uploader_password }}
+      FTPTRAY_REPO: ${{ matrix.repo }}
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
       - run: docker-compose -f docker-compose.yml build --no-cache $BUILD
       - run: docker-compose -f docker-compose.yml up --exit-code-from $BUILD $BUILD
-      - run: docker-compose -f rpmbuild/docker-compose.bintray.yml pull $UPLOADER
-      - run: docker-compose -f rpmbuild/docker-compose.bintray.yml run --rm -e BINTRAY_USER=$BINTRAY_USER -e BINTRAY_API_KEY=$BINTRAY_API_KEY -e BINTRAY_REPO=$BINTRAY_REPO -e ARTIFACTORY_URL=$ARTIFACTORY_URL -e REPO_PATH=$REPO_PATH $UPLOADER
+      - run: docker-compose -f rpmbuild/docker-compose.ftptray.yml pull $UPLOADER
+      - run: docker-compose -f rpmbuild/docker-compose.ftptray.yml run --rm -e FTPTRAY_USER=$FTPTRAY_USER -e FTPTRAY_PASSWORD=$FTPTRAY_PASSWORD -e FTPTRAY_REPO=$FTPTRAY_REPO -e FTPTRAY_HOST=$FTPTRAY_HOST $UPLOADER
